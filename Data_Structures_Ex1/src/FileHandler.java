@@ -83,53 +83,57 @@ public class FileHandler {
 	/*--For question A, the page variable will be equal to 0
 	 *--For question B and C the page declaration will be equal to the return value of the corresponding method
 	 */
-	public DataClass lookForKeyInPage(int page, int key) throws IOException {
-		
+	public int lookForKeyInPage(int page, int key) throws IOException {
+		int diskReaches=0;
 		byte[] buffer = new byte[256];
 		byte[] instanceBuffer = new byte[dClass_array[0].dataLength+4];
 		DataClass[] dcBuffer = new DataClass[ph.instancesPerPage];
 		for(int i =page; i<ph.totalPages+1; i++) {
 			file[0].read(buffer);
 			file[0].seek(i*256);
+			diskReaches++;
 			for(int k=0; k<ph.instancesPerPage; k++) {
 				System.arraycopy(buffer, k*instanceBuffer.length, instanceBuffer, 0, instanceBuffer.length);
 				dcBuffer[k] = new DataClass(dClass_array[0].byteArrayToDataClass(instanceBuffer));
 			}
 			for(int k=0; k<ph.instancesPerPage; k++) {
 				if(dcBuffer[k].key==key) {
-					//System.out.println("Key found with data :" + dcBuffer[k].data);
-					return dcBuffer[k];
+					//System.out.println("Key found");
+					return diskReaches;
 				}
 					
 			}
 		}
 		//System.out.println("Key not found");
-		return null;	
+		return diskReaches;	
 	}
 	
-	public DataClass lookForKeyInIndex(int key) throws IOException {
+	public int lookForKeyInIndex(int key) throws IOException {
+		int diskReaches=0;
 		int[][] buffer =new int[32][2];
 		byte[] byteBuffer = new byte[256];
 		file[1].seek(0);
 		for(int i=0; i<dClass_array[0].n/32 +1 ; i++) {
 			file[1].read(byteBuffer);
 			file[1].seek(i*256);
+			diskReaches++;
 			buffer = ph.byteArrayToIntArray(byteBuffer);
 			//PageHandler.printIntArray(buffer);
 			for(int k=0; k<32;k++) {
 				if(buffer[k][0]==key) {
-					DataClass dcBuffer = new DataClass(lookForKeyInPage(buffer[k][1], key));
+					diskReaches+=lookForKeyInPage(buffer[k][1], key);
 					//System.out.println("Key found with data: " + dcBuffer.data + "at page : " + (buffer[k][1]+1)); 
-					return dcBuffer;
+					return diskReaches;
 				}
 			}
 			
 		}
 		//System.out.println("Key not found");
-		return null;
+		return diskReaches;
 	}
 	
-	public DataClass lookForKeyInSortedIndex(int key) throws IOException {
+	public int lookForKeyInSortedIndex(int key) throws IOException {
+		int diskReaches=0;
 		int[][] buffer =new int[32][2];
 		byte[] byteBuffer = new byte[256];
 		file[2].seek(0);
@@ -144,6 +148,7 @@ public class FileHandler {
 			middle = (maxPage+minPage)/2;
 			file[2].seek(middle*256);
 			file[2].read(byteBuffer);
+			diskReaches++;
 			buffer = ph.byteArrayToIntArray(byteBuffer);
 			if (c!=0 ) {
 				if(key > buffer[j][0]) {
@@ -151,15 +156,15 @@ public class FileHandler {
 					minPage = middle+1;
 				}
 				else if (key<buffer[0][0]) {
-					maxPage=middle-1;
+					maxPage=middle;
 				}
 			}
 			c=1;
 			for(int k=0; k<32;k++) {
 				if(buffer[k][0]==key) {
-					DataClass dcBuffer = new DataClass(lookForKeyInPage(buffer[k][1], key));
+					diskReaches+=lookForKeyInPage(buffer[k][1], key);
 					//System.out.println("Key found with data: " + dcBuffer.data + "at page : " + (buffer[k][1]+1)); 
-					return dcBuffer;
+					return diskReaches;
 				}
 			}
 			if(key < buffer[j][0] && key > buffer[0][0])
@@ -167,11 +172,11 @@ public class FileHandler {
 			
 		}
 		//System.out.println("Key not found");
-		return null;
+		return diskReaches;
 	}
 	
-	public void searchA() throws IOException {
-		int randomInts = 10;
+	public int searchA(int randomInts) throws IOException {
+		int diskReaches=0;
 		int searches[] = new int[randomInts];
 		Random rng = new Random();
 		if(dClass_array[0].n<=randomInts) {
@@ -181,12 +186,13 @@ public class FileHandler {
 			searches = rng.ints(1 ,dClass_array[0].n*2 + 1).distinct().limit(randomInts).toArray();
 		}
 		for(int i=0; i<randomInts; i++) {
-			lookForKeyInPage(0, searches[i]);
+			diskReaches+=lookForKeyInPage(0, searches[i]);
 		}
+		return diskReaches;
 	}
 	
-	public void searchB() throws IOException {
-		int randomInts = 10;
+	public int searchB(int randomInts) throws IOException {
+		int diskReaches=0;
 		int searches[] = new int[randomInts];
 		Random rng = new Random();
 		if(dClass_array[0].n<=randomInts) {
@@ -196,13 +202,14 @@ public class FileHandler {
 			searches = rng.ints(1 ,dClass_array[0].n*2 + 1).distinct().limit(randomInts).toArray();
 		}
 		for(int i=0; i<randomInts; i++) {
-			lookForKeyInIndex(searches[i]);
+			diskReaches+=lookForKeyInIndex(searches[i]);
 		}
+		return diskReaches;
 		
 	}
 	
-	public void searchC() throws IOException {
-		int randomInts = 10;
+	public int searchC(int randomInts) throws IOException {
+		int diskReaches=0;
 		int searches[] = new int[randomInts];
 		Random rng = new Random();
 		if(dClass_array[0].n<=randomInts) {
@@ -212,9 +219,9 @@ public class FileHandler {
 			searches = rng.ints(1 ,dClass_array[0].n*2 + 1).distinct().limit(randomInts).toArray();
 		}
 		for(int i=0; i<randomInts; i++) {
-			lookForKeyInSortedIndex(searches[i]);
+			diskReaches+=lookForKeyInSortedIndex(searches[i]);
 		}
-		
+		return diskReaches;
 	}
 	
 }
